@@ -6,8 +6,11 @@ use App\Repository\CustomerRepository;
 use Doctrine\ORM\Mapping as ORM;
 
 #[ORM\Entity(repositoryClass: CustomerRepository::class)]
-class Customer
+#[ORM\HasLifecycleCallbacks]
+class Customer implements \JsonSerializable
 {
+    use UsesTimestamps;
+
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
@@ -67,4 +70,9 @@ class Customer
 
         return $this;
     }
+
+  public function jsonSerialize(): array
+  {
+    return CustomerResource::toArray($this);
+  }
 }
