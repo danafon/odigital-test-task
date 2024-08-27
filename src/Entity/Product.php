@@ -3,14 +3,20 @@
 namespace App\Entity;
 
 use App\Repository\ProductRepository;
+use App\Resource\ProductResource;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
+use Symfony\Component\Validator\Constraints as Assert;
+use Symfony\Component\Validator\Mapping\ClassMetadata;
 
 #[ORM\Entity(repositoryClass: ProductRepository::class)]
-class Product
+#[ORM\HasLifecycleCallbacks]
+class Product implements \JsonSerializable
 {
+    use UsesTimestamps;
+
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
@@ -105,5 +111,15 @@ class Product
         }
 
         return $this;
+    }
+
+    public function jsonSerialize(): array
+    {
+        return (new ProductResource($this))->toArray();
+    }
+
+    public static function loadValidatorMetadata(ClassMetadata $metadata): void
+    {
+        $metadata->addPropertyConstraint('price', new Assert\GreaterThanOrEqual(0));
     }
 }

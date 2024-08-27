@@ -2,7 +2,7 @@
 
 namespace App\Controller;
 
-use App\Entity\Customer;
+use App\Entity\Product;
 use Doctrine\ORM\EntityManagerInterface;
 use Exception;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -12,21 +12,21 @@ use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
 
-#[Route('/api', name: 'api')]
-class CustomerController extends AbstractController
+#[Route('/api', name: 'product_api')]
+class ProductController extends AbstractController
 {
     use ImplementsApi;
 
-    #[Route('/customers', name: 'customers', methods: 'GET')]
+    #[Route('/products', name: 'products', methods: 'GET')]
     public function index(EntityManagerInterface $entityManager): JsonResponse
     {
-        $customerRepository = $entityManager->getRepository(Customer::class);
-        $data = $customerRepository->findAll();
+        $productRepository = $entityManager->getRepository(Product::class);
+        $data = $productRepository->findAll();
         
         return $this->response($data);
     }
 
-    #[Route('/customers', name: 'customers_add', methods: 'POST')]
+    #[Route('/products', name: 'products_add', methods: 'POST')]
     public function save(Request $request, EntityManagerInterface $entityManager, ValidatorInterface $validator): JsonResponse
     {
         try
@@ -34,27 +34,29 @@ class CustomerController extends AbstractController
             $data = $this->transformJsonBody($request)?->get('data');
 
             if (!$data
-                || !($data['type'] === 'customers')
+                || !($data['type'] === 'products')
                 || !$data['attributes']
-                || !$data['attributes']['name']
-                || !$data['attributes']['email'])
+                || !$data['attributes']['title']
+                || !$data['attributes']['price']
+                || !$data['attributes']['description'])
             {
                 throw new \Exception("Data is not valid");
             }
-            $customer = new Customer();
-            $customer->setName($data['attributes']['name']);
-            $customer->setEmail($data['attributes']['email']);
+            $product = new Product();
+            $product->setTitle($data['attributes']['title']);
+            $product->setDescription($data['attributes']['description']);
+            $product->setPrice($data['attributes']['price']);
 
-            $errors = $validator->validate($customer);
+            $errors = $validator->validate($product);
 
             if (count($errors) > 0) {
                 throw new Exception((string) $errors);
             }
 
-            $entityManager->persist($customer);
+            $entityManager->persist($product);
             $entityManager->flush();
 
-            return $this->response($customer, 201);
+            return $this->response($product, 201);
         } 
         catch (\Exception $e)
         {
@@ -67,38 +69,38 @@ class CustomerController extends AbstractController
         }
     }
 
-    #[Route('/customers/{id}', name: 'customers_get', methods: 'GET')]
+    #[Route('/products/{id}', name: 'products_get', methods: 'GET')]
     public function show(EntityManagerInterface $entityManager, $id): JsonResponse
     {
-        $customerRepository = $entityManager->getRepository(Customer::class);
-        $customer = $customerRepository->find($id);
+        $productRepository = $entityManager->getRepository(Product::class);
+        $product = $productRepository->find($id);
 
-        if (!$customer)
+        if (!$product)
         {
             $data = [
                 'status' => 404,
-                'errors' => "Customer not found",
+                'errors' => "Product not found",
             ];
 
             return $this->response($data, 404);
         }
 
-        return $this->response($customer);
+        return $this->response($product);
     }
 
-    #[Route('/customers/{id}', name: 'customers_patch', methods: 'PATCH')]
+    #[Route('/products/{id}', name: 'products_patch', methods: 'PATCH')]
     public function update(Request $request, EntityManagerInterface $entityManager, $id, ValidatorInterface $validator): JsonResponse
     {
         try{
-            $customerRepository = $entityManager->getRepository(Customer::class);
-            /** @var Customer */
-            $customer = $customerRepository->find($id);
+            $productRepository = $entityManager->getRepository(Product::class);
+            /** @var Product */
+            $product = $productRepository->find($id);
 
-            if (!$customer)
+            if (!$product)
             {
                 $data = [
                     'status' => 404,
-                    'errors' => "Customer not found",
+                    'errors' => "Product not found",
                 ];
 
                 return $this->response($data, 404);
@@ -107,25 +109,27 @@ class CustomerController extends AbstractController
             $data = $this->transformJsonBody($request)?->get('data');
 
             if (!$data
-                || !($data['type'] === 'customers')
+                || !($data['type'] === 'products')
                 || !$data['attributes']
-                || !$data['attributes']['name']
-                || !$data['attributes']['email'])
+                || !$data['attributes']['title']
+                || !$data['attributes']['description']
+                || !$data['attributes']['price'])
             {
                 throw new \Exception("Data is not valid");
             }
 
-            $customer->setName($data['attributes']['name']);
-            $customer->setEmail($data['attributes']['email']);
+            $product->setTitle($data['attributes']['title']);
+            $product->setDescription($data['attributes']['description']);
+            $product->setPrice($data['attributes']['price']);
 
-            $errors = $validator->validate($customer);
+            $errors = $validator->validate($product);
             if (count($errors) > 0) {
                 throw new Exception((string) $errors);
             }
 
             $entityManager->flush();
 
-            return $this->response($customer, 201);
+            return $this->response($product, 201);
         } catch (\Exception $e) {
             $data = [
                 'status' => 422,
@@ -137,26 +141,26 @@ class CustomerController extends AbstractController
 
     }
 
-    #[Route('/customers/{id}', name: 'customers_delete', methods: 'DELETE')]
+    #[Route('/products/{id}', name: 'products_delete', methods: 'DELETE')]
     public function delete(EntityManagerInterface $entityManager, $id): JsonResponse
     {
-        $customerRepository = $entityManager->getRepository(Customer::class);
-        $customer = $customerRepository->find($id);
+        $productRepository = $entityManager->getRepository(Product::class);
+        $product = $productRepository->find($id);
 
-        if (!$customer){
+        if (!$product){
             $data = [
                 'status' => 404,
-                'errors' => "Customer not found",
+                'errors' => "Product not found",
             ];
 
             return $this->response($data, 404);
         }
 
-        $entityManager->remove($customer);
+        $entityManager->remove($product);
         $entityManager->flush();
         $data = [
             'status' => 200,
-            'success' => "Customer deleted successfully",
+            'success' => "Product deleted successfully",
         ];
 
         return $this->response($data);
