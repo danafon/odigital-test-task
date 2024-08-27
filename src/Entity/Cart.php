@@ -3,19 +3,23 @@
 namespace App\Entity;
 
 use App\Repository\CartRepository;
+use App\Resource\CartResource;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
 
 #[ORM\Entity(repositoryClass: CartRepository::class)]
-class Cart
+#[ORM\HasLifecycleCallbacks]
+class Cart implements \JsonSerializable
 {
+    use UsesTimestamps;
+
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
     private ?int $id = null;
 
-    #[ORM\OneToOne(inversedBy: 'cart', cascade: ['persist', 'remove'])]
+    #[ORM\OneToOne(inversedBy: 'cart')]
     #[ORM\JoinColumn(nullable: false)]
     private ?Customer $customer = null;
 
@@ -75,5 +79,10 @@ class Cart
         }
 
         return $this;
+    }
+
+    public function jsonSerialize(): array
+    {
+        return (new CartResource($this))->toArray();
     }
 }

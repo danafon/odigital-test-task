@@ -3,11 +3,17 @@
 namespace App\Entity;
 
 use App\Repository\CartItemRepository;
+use App\Resource\CartItemResource;
 use Doctrine\ORM\Mapping as ORM;
+use Symfony\Component\Validator\Constraints as Assert;
+use Symfony\Component\Validator\Mapping\ClassMetadata;
 
 #[ORM\Entity(repositoryClass: CartItemRepository::class)]
-class CartItem
+#[ORM\HasLifecycleCallbacks]
+class CartItem implements \JsonSerializable
 {
+    use UsesTimestamps;
+
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
@@ -63,5 +69,15 @@ class CartItem
         $this->quantity = $quantity;
 
         return $this;
+    }
+
+    public function jsonSerialize(): array
+    {
+        return (new CartItemResource($this))->toArray();
+    }
+
+    public static function loadValidatorMetadata(ClassMetadata $metadata): void
+    {
+        $metadata->addPropertyConstraint('quantity', new Assert\GreaterThanOrEqual(0));
     }
 }
