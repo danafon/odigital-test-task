@@ -3,7 +3,12 @@
 namespace App\Entity;
 
 use App\Repository\CustomerRepository;
+use App\Resource\CustomerResource;
 use Doctrine\ORM\Mapping as ORM;
+use Symfony\Component\Validator\Constraints\Email;
+use Symfony\Component\Validator\Constraints\NotBlank;
+use Symfony\Component\Validator\Constraints\Unique;
+use Symfony\Component\Validator\Mapping\ClassMetadata;
 
 #[ORM\Entity(repositoryClass: CustomerRepository::class)]
 #[ORM\HasLifecycleCallbacks]
@@ -71,8 +76,15 @@ class Customer implements \JsonSerializable
         return $this;
     }
 
-  public function jsonSerialize(): array
-  {
-    return CustomerResource::toArray($this);
-  }
+    public function jsonSerialize(): array
+    {
+        return (new CustomerResource($this))->toArray();
+    }
+
+    public static function loadValidatorMetadata(ClassMetadata $metadata): void
+    {
+        $metadata->addPropertyConstraint('email', new Email());
+        $metadata->addPropertyConstraint('email', new NotBlank());
+        $metadata->addPropertyConstraint('name', new NotBlank());
+    }
 }

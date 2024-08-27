@@ -1,20 +1,22 @@
 <?php
 
- namespace App\Controller;
+namespace App\Controller;
 
- use App\Entity\Customer;
- use Doctrine\ORM\EntityManagerInterface;
- use Symfony\Component\HttpFoundation\JsonResponse;
- use Symfony\Component\HttpFoundation\Request;
- use Symfony\Component\Routing\Annotation\Route;
+use App\Entity\Customer;
+use Doctrine\ORM\EntityManagerInterface;
+use Exception;
+use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\HttpFoundation\JsonResponse;
+use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\Routing\Annotation\Route;
+use Symfony\Component\Validator\Validator\ValidatorInterface;
 
- /**
-  * Class CustomerController
-  * @package App\Controller
-  */
-  #[Route('/api', name: 'customer_api')]
- class CustomerController extends ApiController
- {
+#[Route('/api', name: 'customer_api')]
+class CustomerController extends AbstractController
+{
+    use ImplementsApi;
+
     #[Route('/customers', name: 'customers', methods: 'GET')]
     public function index(EntityManagerInterface $entityManager): JsonResponse
     {
@@ -25,34 +27,40 @@
     }
 
     #[Route('/customers', name: 'customers_add', methods: 'POST')]
-    public function save(Request $request, EntityManagerInterface $entityManager): JsonResponse
+    public function save(Request $request, EntityManagerInterface $entityManager, ValidatorInterface $validator): JsonResponse|Response
     {
         try
         {
-            $request = $this->transformJsonBody($request);
+            $data = $this->transformJsonBody($request)?->get('data');
 
-            if (!$request || !$request->get('name') || !$request->get('email')){
-                throw new \Exception();
+            if (!$data
+                || !($data['type'] === 'customers')
+                || !$data['attributes']
+                || !$data['attributes']['name']
+                || !$data['attributes']['email'])
+            {
+                throw new \Exception("Data is not valid");
+            }
+            $customer = new Customer();
+            $customer->setName($data['attributes']['name']);
+            $customer->setEmail($data['attributes']['email']);
+
+            $errors = $validator->validate($customer);
+
+            if (count($errors) > 0) {
+                throw new Exception((string) $errors);
             }
 
-            $customer = new Customer();
-            $customer->setName($request->get('name'));
-            $customer->setEmail($request->get('email'));
             $entityManager->persist($customer);
             $entityManager->flush();
 
-            $data = [
-                'status' => 200,
-                'success' => "Customer added successfully",
-            ];
-
-            return $this->response($data);
+            return $this->response($customer, 201);
         } 
-        catch (\Exception $e) 
+        catch (\Exception $e)
         {
             $data = [
                 'status' => 422,
-                'errors' => "Data is not valid",
+                'errors' => $e->getMessage(),
             ];
 
             return $this->response($data, 422);
@@ -79,7 +87,7 @@
     }
 
     #[Route('/customers/{id}', name: 'customers_patch', methods: 'PATCH')]
-    public function update(Request $request, EntityManagerInterface $entityManager, $id): JsonResponse
+    public function update(Request $request, EntityManagerInterface $entityManager, $id, ValidatorInterface $validator): JsonResponse
     {
         try{
             $customerRepository = $entityManager->getRepository(Customer::class);
@@ -96,27 +104,32 @@
                 return $this->response($data, 404);
             }
 
-            $request = $this->transformJsonBody($request);
+            $data = $this->transformJsonBody($request)?->get('data');
 
-            if (!$request || !$request->get('name') || !$request->request->get('email'))
+            if (!$data
+                || !($data['type'] === 'customers')
+                || !$data['attributes']
+                || !$data['attributes']['name']
+                || !$data['attributes']['email'])
             {
-                throw new \Exception();
+                throw new \Exception("Data is not valid");
             }
 
-            $customer->setName($request->get('name'));
-            $customer->setEmail($request->get('email'));
+            $customer->setName($data['attributes']['name']);
+            $customer->setEmail($data['attributes']['email']);
+
+            $errors = $validator->validate($customer);
+            if (count($errors) > 0) {
+                throw new Exception((string) $errors);
+            }
+
             $entityManager->flush();
 
-            $data = [
-                'status' => 200,
-                'success' => "Customer updated successfully",
-            ];
-
-            return $this->response($data);
+            return $this->response($customer, 201);
         } catch (\Exception $e) {
             $data = [
                 'status' => 422,
-                'errors' => "Data no valid",
+                'errors' => $e->getMessage(),
             ];
 
             return $this->response($data, 422);
@@ -143,7 +156,7 @@
         $entityManager->flush();
         $data = [
             'status' => 200,
-            'errors' => "Customer deleted successfully",
+            'success' => "Customer deleted successfully",
         ];
 
         return $this->response($data);
