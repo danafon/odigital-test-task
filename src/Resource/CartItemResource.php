@@ -20,11 +20,15 @@ class CartItemResource
         $cartItem = $this->cartItem;
         return [
             'id' => $cartItem->getId(),
-            'type' => 'cartItems',
+            'type' => 'cart_items',
             'attributes' => [
                 'quantity' => $cartItem->getQuantity(),
                 'created_at' => $this->formatDate($cartItem->getCreatedAt()),
                 'updated_at' => $this->formatDate($cartItem->getUpdatedAt()),
+            ],
+            'relationships' => [
+                'cart' => (new CartIdentifierResource($cartItem->getCart()))->toArray(),
+                'product' => (new ProductIdentifierResource($cartItem->getProduct()))->toArray(),
             ]
         ];
     }

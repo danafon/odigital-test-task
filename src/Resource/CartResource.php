@@ -26,7 +26,8 @@ class CartResource
                 'updated_at' => $this->formatDate($cart->getUpdatedAt()),
             ],
             'relationships' => [
-                'customer' => (new CustomerIdentifierResource($cart->getCustomer()))->toArray()
+                'customer' => (new CustomerIdentifierResource($cart->getCustomer()))->toArray(),
+                'cart_items' => array_map(fn($cartItem) => (new CartItemIdentifierResource($cartItem))->toArray(), $cart->getCartItems()->getValues()),
             ]
         ];
     }
